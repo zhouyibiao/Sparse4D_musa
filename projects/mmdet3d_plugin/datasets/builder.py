@@ -4,10 +4,11 @@ import random
 from functools import partial
 
 import numpy as np
-from mmcv.parallel import collate
+from mmcv.parallel import collate, collate_pin
 from mmcv.runner import get_dist_info
 from mmcv.utils import Registry, build_from_cfg
 from torch.utils.data import DataLoader
+import torch
 
 from mmdet.datasets.samplers import GroupSampler
 from projects.mmdet3d_plugin.datasets.samplers import (
@@ -107,15 +108,25 @@ def build_dataloader(
         if seed is not None
         else None
     )
-
+    # zyb correction: DataLoader pin, num_workers
+    pin_memory_device = None
+    if hasattr(torch, "cuda") and torch.cuda.is_available():
+        pin_memory_device = 'cuda'
+    elif hasattr(torch, "musa") and torch.musa.is_available():
+        pin_memory_device = 'musa'
+        
+    print(f"pin_memory_device is set to: {pin_memory_device}")
+    
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
         sampler=sampler,
         batch_sampler=batch_sampler,
         num_workers=num_workers,
-        collate_fn=partial(collate, samples_per_gpu=samples_per_gpu),
-        pin_memory=False,
+        collate_fn=partial(collate_pin, samples_per_gpu=samples_per_gpu),
+        pin_memory=True,
+        pin_memory_device = pin_memory_device,
+        prefetch_factor=2,
         worker_init_fn=init_fn,
         **kwargs
     )
