@@ -191,10 +191,12 @@ class DeformableFeatureAggregation(BaseModule):
             )
         )
         if self.training and self.attn_drop > 0:
+            # zyb correction: rand on GPU
             mask = torch.rand(
-                bs, num_anchor, self.num_cams, 1, self.num_pts, 1
+                bs, num_anchor, self.num_cams, 1, self.num_pts, 1,
+                device=weights.device,
+                dtype=weights.dtype
             )
-            mask = mask.to(device=weights.device, dtype=weights.dtype)
             weights = ((mask > self.attn_drop) * weights) / (
                 1 - self.attn_drop
             )
