@@ -1,3 +1,10 @@
 *.pyc
 *.npy
 *.pth
+*.pt.trace.json
+**/build/
+**/deformable_aggregation_ext.egg-info/
+/data/
+.vscode/
+work_dirs/
+projects/mmdet3d_plugin/ops/deformable_aggregation_ext.cpython-310-x86_64-linux-gnu.so

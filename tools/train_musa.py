@@ -100,6 +100,16 @@ def parse_args():
         action="store_true",
         help="automatically scale lr with the number of gpus",
     )
+    parser.add_argument(
+        "--enable-musa-tf32",
+        action="store_true",
+        help="enable MUSA tf32 tensor core mode",
+    )
+    parser.add_argument(
+        "--channel-last",
+        action="store_true",
+        help="enable channel last memory format",
+    ) 
     args = parser.parse_args()
     if "LOCAL_RANK" not in os.environ:
         os.environ["LOCAL_RANK"] = str(args.local_rank)
@@ -290,6 +300,16 @@ def main():
         )
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
+    
+    # enable tensor core and channel last memory format for MUSA
+    if args.enable_musa_tf32:
+        print("!!!!!! Enable tensor core for MUSA")
+        torch.backends.mudnn.allow_tf32 = True
+    
+    if args.channel_last:
+        print("!!!!!! Enable channel last memory format for MUSA")
+        model = model.to(memory_format=torch.channels_last)
+    
     if hasattr(cfg, "plugin"):
         custom_train_model(
             model,

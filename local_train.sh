@@ -34,11 +34,14 @@ then
     bash ./tools/dist_train.sh \
         ${config} \
         ${gpu_num} \
-        --work-dir=work_dirs/$1
+        --work-dir=work_dirs/$1 \
+        --channel-last  --enable-musa-tf32
 else
     if [ "$HW" == "MUSA" ]; then
         python ./tools/train_musa.py \
-            ${config}
+            ${config} \
+            --channel-last  --enable-musa-tf32
+
         exit 0
     elif [ "$HW" == "CUDA" ]; then
         python ./tools/train.py \

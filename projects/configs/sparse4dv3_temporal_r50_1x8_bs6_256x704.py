@@ -60,16 +60,15 @@ dist_params = dict(backend="mccl") # musa env
 log_level = "INFO"
 work_dir = None
 
-total_batch_size = 256   # origin value: 48
 num_gpus = 8
-batch_size = total_batch_size // num_gpus
-num_iters_per_epoch = int(28130 // (num_gpus * batch_size))
-num_epochs = 100
+samples_per_gpu = 32
+workers_per_gpu = 8
+total_batch_size = num_gpus * samples_per_gpu
+num_iters_per_epoch = int(28130 // (num_gpus * samples_per_gpu))
+num_epochs = 10
 checkpoint_epoch_interval = 20
 
-checkpoint_config = dict(
-    interval=num_iters_per_epoch * checkpoint_epoch_interval
-)
+checkpoint_config = None
 log_config = dict(
     interval=51,
     hooks=[
@@ -147,7 +146,7 @@ model = dict(
     ),
     head=dict(
         type="Sparse4DHead",
-        cls_threshold_to_reg=0.05,
+        cls_threshold_to_reg=0.02,
         decouple_attn=decouple_attn,
         instance_bank=dict(
             type="InstanceBank",
@@ -385,8 +384,8 @@ data_aug_conf = {
 }
 
 data = dict(
-    samples_per_gpu=batch_size,
-    workers_per_gpu=batch_size,
+    samples_per_gpu=samples_per_gpu,
+    workers_per_gpu=workers_per_gpu,
     train=dict(
         **data_basic_config,
         ann_file=anno_root + "nuscenes-mini_infos_train.pkl",  # change to nuscenes-mini manually for fast debug
