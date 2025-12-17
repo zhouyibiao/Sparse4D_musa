@@ -432,12 +432,11 @@ class Sparse4DHead(BaseModule):
                 reduce_mean(torch.sum(mask).to(dtype=reg.dtype)), 1.0
             )
             
-            # 注释掉分类分数阈值筛选能运行脚本
-            # if self.cls_threshold_to_reg > 0:
-            #     threshold = self.cls_threshold_to_reg
-            #     mask = torch.logical_and(
-            #         mask, cls.max(dim=-1).values.sigmoid() > threshold
-            #     )
+            if self.cls_threshold_to_reg > 0:
+                threshold = self.cls_threshold_to_reg
+                mask = torch.logical_and(
+                    mask, cls.max(dim=-1).values.sigmoid() > threshold
+                )
 
             cls = cls.flatten(end_dim=1)
             cls_target = cls_target.flatten(end_dim=1)
