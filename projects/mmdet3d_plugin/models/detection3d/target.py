@@ -48,10 +48,14 @@ class SparseBox3DTarget(BaseTargetWithDenoising):
     def encode_reg_target(self, box_target, device=None):
         outputs = []
         for box in box_target:
+            # X, Y, Z, W, L, H, SIN_YAW, COS_YAW, VX, VY, VZ = list(range(11))  # undecoded
+            # CNS, YNS = 0, 1  # centerness and yawness indices in qulity
+            # YAW = 6  # decoded
+            # 花式 index 会增加额外的开销
             output = torch.cat(
                 [
-                    box[..., [X, Y, Z]],
-                    box[..., [W, L, H]].log(),
+                    box[..., :3], # from box[..., [X, Y, Z]]
+                    box[..., 3 : 6].log(), # box[..., [W, L, H]].log()
                     torch.sin(box[..., YAW]).unsqueeze(-1),
                     torch.cos(box[..., YAW]).unsqueeze(-1),
                     box[..., YAW + 1 :],

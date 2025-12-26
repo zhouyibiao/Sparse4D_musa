@@ -65,7 +65,7 @@ samples_per_gpu = 32
 workers_per_gpu = 8
 total_batch_size = num_gpus * samples_per_gpu
 num_iters_per_epoch = int(28130 // (num_gpus * samples_per_gpu))
-num_epochs = 10
+num_epochs = 20
 checkpoint_epoch_interval = 20
 
 checkpoint_config = None
