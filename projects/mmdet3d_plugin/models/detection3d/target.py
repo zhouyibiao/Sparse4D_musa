@@ -76,7 +76,7 @@ class SparseBox3DTarget(BaseTargetWithDenoising):
     ):
         bs, num_pred, num_cls = cls_pred.shape
 
-        cls_cost = self._cls_cost(cls_pred, cls_target)
+        cls_cost = self._cls_cost_optimized(cls_pred, cls_target) # 第一部分
 
         box_target = self.encode_reg_target(box_target, box_pred.device)
 
@@ -144,6 +144,61 @@ class SparseBox3DTarget(BaseTargetWithDenoising):
                 )
             else:
                 cost.append(None)
+        return cost
+    
+    def _cls_cost_optimized(self, cls_pred, cls_target):
+        """
+        修正维度后的优化分类成本计算函数：确保形状与原函数一致
+        Args:
+            cls_pred: Tensor, shape [bs, num_pred, num_cls] 模型预测的类别得分
+            cls_target: list[Tensor], len=bs 每个批次的目标类别索引，形状[num_targets_i]
+        Returns:
+            cost: list[Tensor] 每个批次的分类成本，与原函数输出格式一致
+        """
+        bs, num_pred, num_cls = cls_pred.shape
+        
+        # ========== 步骤1：向量化计算全局Focal Loss的pos/neg cost ==========
+        cls_pred_sigmoid = cls_pred.sigmoid().contiguous()
+        pred_pow_gamma = cls_pred_sigmoid.pow(self.gamma)
+        pred_1_minus_pow_gamma = (1 - cls_pred_sigmoid).pow(self.gamma)
+        
+        pos_cost = -(cls_pred_sigmoid + self.eps).log() * self.alpha * pred_1_minus_pow_gamma
+        neg_cost = -(1 - cls_pred_sigmoid + self.eps).log() * (1 - self.alpha) * pred_pow_gamma
+        cost_all = (pos_cost - neg_cost) * self.cls_weight  # [bs, num_pred, num_cls]
+
+        # ========== 步骤2：处理变长cls_target，转为规整张量+mask ==========
+        num_targets_per_bs = [len(t) for t in cls_target]
+        max_num_targets = max(num_targets_per_bs) if num_targets_per_bs else 0
+        
+        cls_target_padded = torch.full((bs, max_num_targets), -1, dtype=torch.long, device=cls_pred.device)
+        for i in range(bs):
+            num_t = num_targets_per_bs[i]
+            if num_t > 0:
+                cls_target_padded[i, :num_t] = cls_target[i]
+
+        # ========== 步骤3：修正高级索引，确保维度为[bs, num_pred, max_num_targets] ==========
+        # 方式1：使用torch.gather（更稳定，避免索引维度混乱）
+        # 1. 将cls_target_padded转为[bs, 1, max_num_targets]，适配gather的dim=2
+        target_cls_idx = cls_target_padded.clamp(min=0, max=num_cls-1)[:, None, :]  # [bs, 1, max_num_targets]
+        # 2. gather沿num_cls维度（dim=2）提取目标类别的成本，结果为[bs, num_pred, max_num_targets]
+        cost_padded = torch.gather(cost_all, dim=2, index=target_cls_idx.expand(-1, num_pred, -1))
+
+        # 【替代方案：若坚持用高级索引，需转置修正维度】
+        # batch_idx = torch.arange(bs, device=cls_pred.device)[:, None].expand(-1, max_num_targets)
+        # target_cls_idx = cls_target_padded.clamp(min=0, max=num_cls-1)
+        # cost_padded = cost_all[batch_idx, :, target_cls_idx]  # [bs, max_num_targets, num_pred]
+        # cost_padded = cost_padded.transpose(1, 2)  # 转置为[bs, num_pred, max_num_targets]
+
+        # ========== 步骤4：恢复为原函数的变长列表格式 ==========
+        cost = []
+        for i in range(bs):
+            num_t = num_targets_per_bs[i]
+            if num_t == 0:
+                cost.append(None)
+            else:
+                cost_i = cost_padded[i, :, :num_t]  # [num_pred, num_targets_i] 与原函数一致
+                cost.append(cost_i)
+
         return cost
 
     def _box_cost(self, box_pred, box_target, instance_reg_weights):

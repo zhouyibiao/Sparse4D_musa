@@ -72,13 +72,11 @@ def feature_maps_format(feature_maps, inverse=False):
 
     col_feats = torch.cat(col_feats, dim=-1).permute(0, 1, 3, 2).flatten(1, 2)
     spatial_shape = [spatial_shape] * num_cams
-    # zyb correction
     spatial_shape = torch.tensor(
         spatial_shape,
         dtype=torch.int64,
-        # device=col_feats.device,
+        device=col_feats.device,
     )
-    spatial_shape = spatial_shape.to(col_feats.device, non_blocking = True)
     scale_start_index = spatial_shape[..., 0] * spatial_shape[..., 1]
     scale_start_index = scale_start_index.flatten().cumsum(dim=0)
     scale_start_index = torch.cat(
