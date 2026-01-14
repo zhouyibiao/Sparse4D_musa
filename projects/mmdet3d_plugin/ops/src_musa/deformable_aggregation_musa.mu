@@ -210,7 +210,7 @@ __device__ void bilinear_sampling_grad_v2(
 
 
 __global__ void deformable_aggregation_kernel(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     float* output,
     const float* mc_ms_feat,
     const int* spatial_shape,
@@ -226,7 +226,7 @@ __global__ void deformable_aggregation_kernel(
     int num_pts,
     int num_groups
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= num_kernels) return;
 
     const float weight = *(weights + idx / (num_embeds / num_groups));
@@ -271,7 +271,7 @@ __global__ void deformable_aggregation_kernel(
 
 
 __global__ void deformable_aggregation_kernel_v1(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     float* output,
     const float* mc_ms_feat,
     const int* spatial_shape,
@@ -293,7 +293,7 @@ __global__ void deformable_aggregation_kernel_v1(
     at::musa::FastDivmod fastdiv5,
     at::musa::FastDivmod fastdiv6
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= num_kernels) return;
 
     uint32_t idx1, idx2, idx3, idx4, idx5, idx6;
@@ -359,7 +359,7 @@ __global__ void deformable_aggregation_kernel_v1(
 
 
 __global__ void deformable_aggregation_grad_kernel(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     const float* mc_ms_feat,
     const int* spatial_shape,
     const int* scale_start_index,
@@ -378,7 +378,7 @@ __global__ void deformable_aggregation_grad_kernel(
     int num_pts,
     int num_groups
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= num_kernels) return;
 
     const int weights_ptr = idx / (num_embeds / num_groups);
@@ -434,7 +434,7 @@ __global__ void deformable_aggregation_grad_kernel(
 
 
 __global__ void deformable_aggregation_grad_kernel_v1(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     const float* mc_ms_feat,
     const int* spatial_shape,
     const int* scale_start_index,
@@ -460,7 +460,7 @@ __global__ void deformable_aggregation_grad_kernel_v1(
     at::musa::FastDivmod fastdiv6
 
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= num_kernels) return;
 
     const int weights_ptr = idx / (num_embeds / num_groups);
@@ -542,7 +542,7 @@ __global__ void deformable_aggregation_grad_kernel_v1(
 }
 
 __global__ void deformable_aggregation_grad_kernel_v2(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     const float* mc_ms_feat,
     const int* spatial_shape,
     const int* scale_start_index,
@@ -568,7 +568,7 @@ __global__ void deformable_aggregation_grad_kernel_v2(
     at::musa::FastDivmod fastdiv6
 
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= num_kernels) return;
 
     const int weights_ptr = idx / (num_embeds / num_groups);
@@ -652,7 +652,7 @@ __global__ void deformable_aggregation_grad_kernel_v2(
 
 #define MAX_HEADS 8
 __global__ void deformable_aggregation_grad_kernel_v3(
-    const int64_t num_kernels,
+    const uint32_t num_kernels,
     const float* mc_ms_feat_all,
     const int* spatial_shape_all,
     const int* scale_start_index_all,
@@ -678,7 +678,7 @@ __global__ void deformable_aggregation_grad_kernel_v3(
     at::musa::FastDivmod fastdiv6
 
 ) {
-    int64_t idx = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    uint32_t idx = static_cast<uint32_t>(blockIdx.x) * blockDim.x + threadIdx.x;
 
     if (idx >= num_kernels) return;
 
@@ -1055,9 +1055,9 @@ void deformable_aggregation(
     int num_pts,
     int num_groups
 ) {
-    const int64_t num_kernels = static_cast<int64_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t num_kernels = static_cast<uint32_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_kernel
         <<<grid_size, block_size>>>(
         num_kernels, output,
@@ -1094,9 +1094,9 @@ void deformable_aggregation_v1(
     at::musa::FastDivmod fastdiv5(num_anchors);
     at::musa::FastDivmod fastdiv6(batch_size);
 
-    const int64_t num_kernels = static_cast<int64_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t num_kernels = static_cast<uint32_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_kernel_v1
         <<<grid_size, block_size>>>(
         num_kernels, output,
@@ -1131,9 +1131,9 @@ void deformable_aggregation_grad(
   int num_pts,
   int num_groups
 ) {
-    const int64_t num_kernels = static_cast<int64_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t num_kernels = static_cast<uint32_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_grad_kernel
         <<<grid_size, block_size>>>(
         num_kernels,
@@ -1173,9 +1173,9 @@ void deformable_aggregation_grad_v1(
     at::musa::FastDivmod fastdiv4(num_pts);
     at::musa::FastDivmod fastdiv5(num_anchors);
     at::musa::FastDivmod fastdiv6(batch_size);
-    const int64_t num_kernels = static_cast<int64_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t num_kernels = static_cast<uint32_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_grad_kernel_v1
         <<<grid_size, block_size>>>(
         num_kernels,
@@ -1215,9 +1215,9 @@ void deformable_aggregation_grad_v2(
     at::musa::FastDivmod fastdiv4(num_pts);
     at::musa::FastDivmod fastdiv5(num_anchors);
     at::musa::FastDivmod fastdiv6(batch_size);
-    const int64_t num_kernels = static_cast<int64_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t num_kernels = static_cast<uint32_t>(batch_size) * num_pts * num_embeds * num_anchors * num_cams * num_scale;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_grad_kernel_v2
         // <<<8, 128>>>(
         <<<grid_size, block_size>>>(
@@ -1259,8 +1259,8 @@ void deformable_aggregation_grad_v3(
     at::musa::FastDivmod fastdiv5(num_anchors);
     at::musa::FastDivmod fastdiv6(batch_size);
     const long int num_kernels = batch_size * num_pts * num_anchors * num_cams;
-    const int64_t block_size = 128;
-    const int64_t grid_size = (num_kernels + block_size - 1) / block_size;
+    const uint32_t block_size = 128;
+    const uint32_t grid_size = (num_kernels + block_size - 1) / block_size;
     deformable_aggregation_grad_kernel_v3
         <<<(int)ceil(((double)num_kernels/128)), 128>>>(
         // <<<1, 128>>>(
