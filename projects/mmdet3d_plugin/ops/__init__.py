@@ -26,6 +26,7 @@ def feature_maps_format(feature_maps, inverse=False):
 
         split_size = spatial_shape[..., 0] * spatial_shape[..., 1]
         split_size = split_size.cpu().numpy().tolist()
+        split_size = [[int(element) for element in sub_list] for sub_list in split_size]
 
         idx = 0
         cam_split = [1]
@@ -42,6 +43,7 @@ def feature_maps_format(feature_maps, inverse=False):
         ]
 
         spatial_shape = spatial_shape.cpu().numpy().tolist()
+        spatial_shape = [[[int(element) for element in element_list] for element_list in sub_list] for sub_list in spatial_shape]
         mc_ms_feat = []
         shape_index = 0
         for i, feat in enumerate(mc_feat):

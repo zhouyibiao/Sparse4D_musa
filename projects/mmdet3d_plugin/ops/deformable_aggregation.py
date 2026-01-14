@@ -20,7 +20,7 @@ class DeformableAggregationFunction(Function):
         scale_start_index = scale_start_index.contiguous().int()
         sampling_location = sampling_location.contiguous().float()
         weights = weights.contiguous().float()
-        output = deformable_aggregation_ext.deformable_aggregation_forward(
+        output = deformable_aggregation_ext.deformable_aggregation_forward_v1(
             mc_ms_feat,
             spatial_shape,
             scale_start_index,
@@ -55,7 +55,7 @@ class DeformableAggregationFunction(Function):
         grad_mc_ms_feat = torch.zeros_like(mc_ms_feat)
         grad_sampling_location = torch.zeros_like(sampling_location)
         grad_weights = torch.zeros_like(weights)
-        deformable_aggregation_ext.deformable_aggregation_backward(
+        deformable_aggregation_ext.deformable_aggregation_backward_v3(
             mc_ms_feat,
             spatial_shape,
             scale_start_index,
