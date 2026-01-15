@@ -21,13 +21,30 @@ from mmdet.apis import train_detector
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from mmdet.utils import collect_env, get_root_logger
-from mmdet.apis import set_random_seed
 from torch import distributed as dist
 from datetime import timedelta
+import numpy as np
+import random
 
 import cv2
 
 cv2.setNumThreads(8)
+
+def set_all_seeds(seed: int = 42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    if hasattr(torch, "cuda") and torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    if hasattr(torch, "musa") and torch.musa.is_available():
+        import torch_musa
+        torch.musa.manual_seed(seed)
+        torch.musa.manual_seed_all(seed)
 
 
 def parse_args():
@@ -56,7 +73,7 @@ def parse_args():
         help="ids of gpus to use "
         "(only applicable to non-distributed training)",
     )
-    parser.add_argument("--seed", type=int, default=0, help="random seed")
+    parser.add_argument("--seed", type=int, default=42, help="random seed")
     parser.add_argument(
         "--deterministic",
         action="store_true",
@@ -266,7 +283,11 @@ def main():
             f"Set random seed to {args.seed}, "
             f"deterministic: {args.deterministic}"
         )
-        set_random_seed(args.seed, deterministic=args.deterministic)
+        set_all_seeds(args.seed)
+    else:
+        logger.info(
+            f"Random seed not set."
+        )
     cfg.seed = args.seed
     meta["seed"] = args.seed
     meta["exp_name"] = osp.basename(args.config)
